@@ -89,4 +89,52 @@ h1 {
   .weather-info {
     grid-template-columns: 1fr;
   }
+}
+
+.thermometer-container {
+  margin: 2rem auto;
+  width: 100px;
+  height: 300px;
+  position: relative;
+}
+
+.thermometer {
+  width: 40px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  position: relative;
+  margin: 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.mercury {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, #ff4b4b, #ff6b6b);
+  border-radius: 20px;
+  transition: height 0.5s ease-in-out;
+}
+
+.temp-markers {
+  position: absolute;
+  right: -40px;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.temp-marker {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.temp-marker.active {
+  color: white;
+  font-weight: bold;
 } 
