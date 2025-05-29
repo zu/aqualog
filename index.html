@@ -14,6 +14,20 @@
       <div class="main-temp water-temp">
         <h2>Wassertemperatur</h2>
         <div class="temperature" id="waterTemperature">Loading...</div>
+        <div class="thermometer-container">
+          <div class="thermometer" id="thermometer">
+            <div class="mercury" id="mercury"></div>
+            <div class="temp-markers">
+              <div class="temp-marker" data-temp="30">30°</div>
+              <div class="temp-marker" data-temp="25">25°</div>
+              <div class="temp-marker" data-temp="20">20°</div>
+              <div class="temp-marker" data-temp="15">15°</div>
+              <div class="temp-marker" data-temp="10">10°</div>
+              <div class="temp-marker" data-temp="5">5°</div>
+              <div class="temp-marker" data-temp="0">0°</div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="weather-info">
@@ -37,13 +51,16 @@
         const waterResponse = await fetch('https://api.datalakes-eawag.ch/data/1074/y');
         if (!waterResponse.ok) throw new Error('Water temperature data not available');
         const waterData = await waterResponse.json();
-        document.getElementById('waterTemperature').textContent = `${waterData.value} °C`;
+        const waterTemp = Math.floor(waterData.value * 100) / 100;
+        document.getElementById('waterTemperature').textContent = `${waterTemp} °C`;
+        updateThermometer(waterTemp);
 
-        // Fetch air temperature (using a different endpoint - you'll need to replace with the correct one)
-        const airResponse = await fetch('https://api.datalakes-eawag.ch/data/1077/z');
+        // Fetch air temperature
+        const airResponse = await fetch('https://api.datalakes-eawag.ch/data/1073/y');
         if (!airResponse.ok) throw new Error('Air temperature data not available');
         const airData = await airResponse.json();
-        document.getElementById('airTemperature').textContent = `${airData.value} °C`;
+        const airTemp = Math.floor(airData.value * 100) / 100;
+        document.getElementById('airTemperature').textContent = `${airTemp} °C`;
 
         // For now, we'll just show a placeholder for the weather icon
         document.getElementById('weatherIcon').textContent = '☀️';
@@ -53,6 +70,29 @@
         document.getElementById('airTemperature').textContent = 'Error fetching data';
         document.getElementById('weatherIcon').textContent = '❌';
       }
+    }
+
+    function updateThermometer(temp) {
+      const thermometer = document.getElementById('thermometer');
+      const mercury = document.getElementById('mercury');
+      
+      // Calculate the height percentage (temperature range from 0 to 30 degrees)
+      const minTemp = 0;
+      const maxTemp = 30;
+      const height = Math.min(100, Math.max(0, ((temp - minTemp) / (maxTemp - minTemp)) * 100));
+      
+      mercury.style.height = `${height}%`;
+      
+      // Update the temperature markers
+      const markers = document.querySelectorAll('.temp-marker');
+      markers.forEach(marker => {
+        const markerTemp = parseInt(marker.getAttribute('data-temp'));
+        if (temp >= markerTemp) {
+          marker.classList.add('active');
+        } else {
+          marker.classList.remove('active');
+        }
+      });
     }
 
     fetchData();
