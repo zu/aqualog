@@ -72,7 +72,7 @@
 
         // Fetch weather data from OpenWeatherMap API
         // Note: You'll need to replace 'YOUR_API_KEY' with an actual API key
-        const weatherResponse = await fetch('https://api.openweathermap.org/data/2.5/weather?lat=47.2459&lon=8.6497&units=metric&lang=de&appid=YOUR_API_KEY');
+        const weatherResponse = await fetch('https://api.openweathermap.org/data/2.5/weather?lat=47.2459&lon=8.6497&units=metric&lang=de&appid=53b872678ab2b6e84ca80b078b5a15b3');
         if (!weatherResponse.ok) throw new Error('Weather data not available');
         const weatherData = await weatherResponse.json();
         
