@@ -40,7 +40,13 @@
         
         <div class="info-card">
           <h3>Wetter</h3>
-          <div class="weather-icon" id="weatherIcon">Loading...</div>
+          <div class="weather-details">
+            <div class="weather-icon" id="weatherIcon">Loading...</div>
+            <div class="weather-info">
+              <div class="weather-temp" id="weatherTemp">--°C</div>
+              <div class="weather-desc" id="weatherDesc">Loading...</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -64,13 +70,23 @@
         const airTemp = Math.floor(airData.value * 100) / 100;
         document.getElementById('airTemperature').textContent = `${airTemp} °C`;
 
-        // For now, we'll just show a placeholder for the weather icon
-        document.getElementById('weatherIcon').textContent = '☀️';
+        // Fetch weather data from OpenWeatherMap API
+        // Note: You'll need to replace 'YOUR_API_KEY' with an actual API key
+        const weatherResponse = await fetch('https://api.openweathermap.org/data/2.5/weather?lat=47.2459&lon=8.6497&units=metric&lang=de&appid=YOUR_API_KEY');
+        if (!weatherResponse.ok) throw new Error('Weather data not available');
+        const weatherData = await weatherResponse.json();
+        
+        // Update weather information
+        document.getElementById('weatherTemp').textContent = `${Math.round(weatherData.main.temp)}°C`;
+        document.getElementById('weatherDesc').textContent = weatherData.weather[0].description;
+        document.getElementById('weatherIcon').textContent = getWeatherIcon(weatherData.weather[0].id);
       } catch (error) {
         console.error('Fetch error:', error);
         document.getElementById('waterTemperature').textContent = 'Error fetching data';
         document.getElementById('airTemperature').textContent = 'Error fetching data';
         document.getElementById('weatherIcon').textContent = '❌';
+        document.getElementById('weatherTemp').textContent = '--°C';
+        document.getElementById('weatherDesc').textContent = 'Error loading weather';
       }
     }
 
@@ -95,6 +111,20 @@
           marker.classList.remove('active');
         }
       });
+    }
+
+    function getWeatherIcon(code) {
+      // Map OpenWeatherMap weather codes to emoji icons
+      if (code >= 200 && code < 300) return '⛈️';  // Thunderstorm
+      if (code >= 300 && code < 400) return '🌧️';  // Drizzle
+      if (code >= 500 && code < 600) return '🌧️';  // Rain
+      if (code >= 600 && code < 700) return '🌨️';  // Snow
+      if (code >= 700 && code < 800) return '🌫️';  // Atmosphere (fog, mist, etc.)
+      if (code === 800) return '☀️';               // Clear
+      if (code === 801) return '🌤️';              // Few clouds
+      if (code === 802) return '⛅';               // Scattered clouds
+      if (code >= 803 && code <= 804) return '☁️'; // Cloudy/Overcast
+      return '❓';
     }
 
     fetchData();
