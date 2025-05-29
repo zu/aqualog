@@ -40,7 +40,7 @@
         document.getElementById('waterTemperature').textContent = `${waterData.value} °C`;
 
         // Fetch air temperature (using a different endpoint - you'll need to replace with the correct one)
-        const airResponse = await fetch('https://api.datalakes-eawag.ch/data/1074/y');
+        const airResponse = await fetch('https://api.datalakes-eawag.ch/data/1077/z');
         if (!airResponse.ok) throw new Error('Air temperature data not available');
         const airData = await airResponse.json();
         document.getElementById('airTemperature').textContent = `${airData.value} °C`;
