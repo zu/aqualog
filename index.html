@@ -57,7 +57,10 @@
       try {
         // Fetch water temperature
         const waterResponse = await fetch('https://api.datalakes-eawag.ch/data/1074/y');
-        if (!waterResponse.ok) throw new Error('Water temperature data not available');
+        if (!waterResponse.ok) {
+          console.error('Water temperature error:', waterResponse.status, waterResponse.statusText);
+          throw new Error(`Water temperature data not available: ${waterResponse.status} ${waterResponse.statusText}`);
+        }
         const waterData = await waterResponse.json();
         const waterTemp = Math.floor(waterData.value * 100) / 100;
         document.getElementById('waterTemperature').textContent = `${waterTemp} °C`;
@@ -65,15 +68,22 @@
 
         // Fetch air temperature
         const airResponse = await fetch('https://api.datalakes-eawag.ch/data/1073/y');
-        if (!airResponse.ok) throw new Error('Air temperature data not available');
+        if (!airResponse.ok) {
+          console.error('Air temperature error:', airResponse.status, airResponse.statusText);
+          throw new Error(`Air temperature data not available: ${airResponse.status} ${airResponse.statusText}`);
+        }
         const airData = await airResponse.json();
         const airTemp = Math.floor(airData.value * 100) / 100;
         document.getElementById('airTemperature').textContent = `${airTemp} °C`;
 
         // Fetch weather data from OpenWeatherMap API
-        // Note: You'll need to replace 'YOUR_API_KEY' with an actual API key
         const weatherResponse = await fetch('https://api.openweathermap.org/data/2.5/weather?lat=47.2459&lon=8.6497&units=metric&lang=de&appid=53b872678ab2b6e84ca80b078b5a15b3');
-        if (!weatherResponse.ok) throw new Error('Weather data not available');
+        if (!weatherResponse.ok) {
+          console.error('Weather API error:', weatherResponse.status, weatherResponse.statusText);
+          const errorData = await weatherResponse.json();
+          console.error('Weather API error details:', errorData);
+          throw new Error(`Weather data not available: ${weatherResponse.status} ${weatherResponse.statusText}`);
+        }
         const weatherData = await weatherResponse.json();
         
         // Update weather information
@@ -81,12 +91,19 @@
         document.getElementById('weatherDesc').textContent = weatherData.weather[0].description;
         document.getElementById('weatherIcon').textContent = getWeatherIcon(weatherData.weather[0].id);
       } catch (error) {
-        console.error('Fetch error:', error);
-        document.getElementById('waterTemperature').textContent = 'Error fetching data';
-        document.getElementById('airTemperature').textContent = 'Error fetching data';
-        document.getElementById('weatherIcon').textContent = '❌';
-        document.getElementById('weatherTemp').textContent = '--°C';
-        document.getElementById('weatherDesc').textContent = 'Error loading weather';
+        console.error('Fetch error details:', error);
+        // Only update the specific card that failed
+        if (error.message.includes('Water temperature')) {
+          document.getElementById('waterTemperature').textContent = 'Error fetching data';
+        }
+        if (error.message.includes('Air temperature')) {
+          document.getElementById('airTemperature').textContent = 'Error fetching data';
+        }
+        if (error.message.includes('Weather data')) {
+          document.getElementById('weatherIcon').textContent = '❌';
+          document.getElementById('weatherTemp').textContent = '--°C';
+          document.getElementById('weatherDesc').textContent = 'Error loading weather';
+        }
       }
     }
 
