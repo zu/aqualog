@@ -64,9 +64,8 @@
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 7);
         
-        // Using the correct endpoint for Lake Ägeri water temperature
-        // The endpoint 1074 is for the current value, we need to use the historical endpoint
-        const response = await fetch(`https://api.datalakes-eawag.ch/data/1074/h?from=${startDate.toISOString()}&to=${endDate.toISOString()}&interval=1h`);
+        // Using dataset 1077 for Lake Ägeri water temperature historical data
+        const response = await fetch(`https://api.datalakes-eawag.ch/data/1077/h?from=${startDate.toISOString()}&to=${endDate.toISOString()}&interval=1h`);
         if (!response.ok) {
           console.error('Historical data API error:', response.status, response.statusText);
           throw new Error(`Historical data not available: ${response.status} ${response.statusText}`);
