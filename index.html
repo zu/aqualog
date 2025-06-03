@@ -73,10 +73,24 @@
         
         const data = await response.json();
         
-        // If the API returns a single value, we need to create an array of data points
+        // If the API returns a single value, create a time series
         if (!Array.isArray(data)) {
-          console.error('Unexpected data format:', data);
-          throw new Error('Unexpected data format from API');
+          // Create an array of 24 data points for the last 7 days
+          const dataPoints = [];
+          const currentDate = new Date();
+          
+          for (let i = 0; i < 24; i++) {
+            const pointDate = new Date(currentDate);
+            pointDate.setHours(currentDate.getHours() - i);
+            
+            // Use the current value for all points (since we only have one)
+            dataPoints.push({
+              timestamp: pointDate.toISOString(),
+              value: data.value
+            });
+          }
+          
+          return dataPoints;
         }
         
         return data;
@@ -101,7 +115,7 @@
       }
 
       // Prepare data for the chart
-      const labels = historicalData.map(point => new Date(point.timestamp).toLocaleDateString());
+      const labels = historicalData.map(point => new Date(point.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
       const temperatures = historicalData.map(point => point.value);
 
       // If we don't have enough data points, don't create the chart
