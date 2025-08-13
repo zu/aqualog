@@ -6,10 +6,81 @@
   <title>&Auml;gerisee Wetter</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>&Auml;gerisee Wetter</h1>
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+      <div class="nav-brand">
+        <h1>&Auml;gerisee Wetter</h1>
+      </div>
+      <div class="nav-items">
+        <button id="loginBtn" class="nav-btn" style="display: none;">Login</button>
+        <button id="logoutBtn" class="nav-btn" style="display: none;">Logout</button>
+        <div id="userInfo" class="user-info" style="display: none;">
+          <span id="userEmail"></span>
+          <span id="userRole"></span>
+        </div>
+        <button id="manageBtn" class="nav-btn" style="display: none;">Manage Data</button>
+        <button id="adminBtn" class="nav-btn" style="display: none;">Admin Panel</button>
+      </div>
+    </nav>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Login</h2>
+        <div class="login-options">
+          <button id="googleLoginBtn" class="login-btn google">Login with Google</button>
+          <button id="githubLoginBtn" class="login-btn github">Login with GitHub</button>
+          <div class="divider">or</div>
+          <form id="emailLoginForm">
+            <input type="email" id="emailInput" placeholder="Email" required>
+            <input type="password" id="passwordInput" placeholder="Password" required>
+            <button type="submit" class="login-btn email">Login</button>
+          </form>
+          <button id="signupBtn" class="signup-btn">Create Account</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Data Modal -->
+    <div id="manageModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Manage Your Data</h2>
+        <div class="data-section">
+          <h3>Saved Locations</h3>
+          <div id="savedLocations"></div>
+          <button id="addLocationBtn" class="action-btn">Add Location</button>
+        </div>
+        <div class="data-section">
+          <h3>Temperature Alerts</h3>
+          <div id="temperatureAlerts"></div>
+          <button id="addAlertBtn" class="action-btn">Add Alert</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Admin Panel</h2>
+        <div class="admin-section">
+          <h3>User Management</h3>
+          <div id="userList"></div>
+        </div>
+        <div class="admin-section">
+          <h3>System Statistics</h3>
+          <div id="systemStats"></div>
+        </div>
+      </div>
+    </div>
     
     <div class="weather-grid">
       <div class="main-temp water-temp">
@@ -55,7 +126,262 @@
   </div>
 
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      // TODO: Replace with your actual Firebase config from Step 4
+      // Copy the config object from Firebase Console > Project Settings > Your Apps
+      apiKey: "AIzaSyC...", // Replace with your actual API key
+      authDomain: "your-project.firebaseapp.com", // Replace with your actual domain
+      projectId: "your-project-id", // Replace with your actual project ID
+      storageBucket: "your-project.appspot.com", // Replace with your actual storage bucket
+      messagingSenderId: "123456789", // Replace with your actual sender ID
+      appId: "1:123456789:web:abc123" // Replace with your actual app ID
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
     let tempHistoryChart;
+
+    // Authentication State Observer
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        await updateUserRole();
+        updateUIForLoggedInUser();
+      } else {
+        currentUser = null;
+        updateUIForLoggedOutUser();
+      }
+    });
+
+    // Update user role from Firestore
+    async function updateUserRole() {
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          currentUser.role = userData.role || 'user';
+        } else {
+          // Create new user document with default role
+          await db.collection('users').doc(currentUser.uid).set({
+            email: currentUser.email,
+            role: 'user',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          currentUser.role = 'user';
+        }
+      } catch (error) {
+        console.error('Error updating user role:', error);
+        currentUser.role = 'user';
+      }
+    }
+
+    // Update UI for logged in user
+    function updateUIForLoggedInUser() {
+      document.getElementById('loginBtn').style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'inline-block';
+      document.getElementById('userInfo').style.display = 'inline-block';
+      document.getElementById('manageBtn').style.display = 'inline-block';
+      
+      if (currentUser.role === 'admin') {
+        document.getElementById('adminBtn').style.display = 'inline-block';
+      }
+      
+      document.getElementById('userEmail').textContent = currentUser.email;
+      document.getElementById('userRole').textContent = `(${currentUser.role})`;
+    }
+
+    // Update UI for logged out user
+    function updateUIForLoggedOutUser() {
+      document.getElementById('loginBtn').style.display = 'inline-block';
+      document.getElementById('logoutBtn').style.display = 'none';
+      document.getElementById('userInfo').style.display = 'none';
+      document.getElementById('manageBtn').style.display = 'none';
+      document.getElementById('adminBtn').style.display = 'none';
+    }
+
+    // Event Listeners
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      document.getElementById('loginModal').style.display = 'block';
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+        console.log('User logged out successfully');
+      } catch (error) {
+        console.error('Error logging out:', error);
+      }
+    });
+
+    document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        document.getElementById('loginModal').style.display = 'none';
+      } catch (error) {
+        console.error('Google login error:', error);
+      }
+    });
+
+    document.getElementById('githubLoginBtn').addEventListener('click', async () => {
+      try {
+        const provider = new firebase.auth.GithubAuthProvider();
+        await auth.signInWithPopup(provider);
+        document.getElementById('loginModal').style.display = 'none';
+      } catch (error) {
+        console.error('GitHub login error:', error);
+      }
+    });
+
+    document.getElementById('emailLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      const password = document.getElementById('passwordInput').value;
+      
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        document.getElementById('loginModal').style.display = 'none';
+      } catch (error) {
+        console.error('Email login error:', error);
+        alert('Login failed: ' + error.message);
+      }
+    });
+
+    document.getElementById('signupBtn').addEventListener('click', async () => {
+      const email = document.getElementById('emailInput').value;
+      const password = document.getElementById('passwordInput').value;
+      
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+      
+      try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        document.getElementById('loginModal').style.display = 'none';
+      } catch (error) {
+        console.error('Signup error:', error);
+        alert('Signup failed: ' + error.message);
+      }
+    });
+
+    // Modal management
+    document.querySelectorAll('.close').forEach(closeBtn => {
+      closeBtn.addEventListener('click', () => {
+        closeBtn.closest('.modal').style.display = 'none';
+      });
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.style.display = 'none';
+      }
+    });
+
+    // Manage data modal
+    document.getElementById('manageBtn').addEventListener('click', () => {
+      document.getElementById('manageModal').style.display = 'block';
+      loadUserData();
+    });
+
+    // Admin panel modal
+    document.getElementById('adminBtn').addEventListener('click', () => {
+      document.getElementById('adminModal').style.display = 'block';
+      loadAdminData();
+    });
+
+    // Load user data
+    async function loadUserData() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          // Display saved locations and alerts
+          displaySavedLocations(userData.savedLocations || []);
+          displayTemperatureAlerts(userData.temperatureAlerts || []);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    }
+
+    // Load admin data
+    async function loadAdminData() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      
+      try {
+        const usersSnapshot = await db.collection('users').get();
+        const users = [];
+        usersSnapshot.forEach(doc => {
+          users.push({ id: doc.id, ...doc.data() });
+        });
+        displayUserList(users);
+      } catch (error) {
+        console.error('Error loading admin data:', error);
+      }
+    }
+
+    // Display functions
+    function displaySavedLocations(locations) {
+      const container = document.getElementById('savedLocations');
+      container.innerHTML = locations.length === 0 ? '<p>No saved locations</p>' : 
+        locations.map(loc => `<div class="location-item">${loc.name}: ${loc.coordinates}</div>`).join('');
+    }
+
+    function displayTemperatureAlerts(alerts) {
+      const container = document.getElementById('temperatureAlerts');
+      container.innerHTML = alerts.length === 0 ? '<p>No temperature alerts</p>' : 
+        alerts.map(alert => `<div class="alert-item">${alert.condition} ${alert.temperature}°C</div>`).join('');
+    }
+
+    function displayUserList(users) {
+      const container = document.getElementById('userList');
+      container.innerHTML = users.map(user => 
+        `<div class="user-item">
+          <span>${user.email}</span>
+          <span>${user.role}</span>
+          <button onclick="changeUserRole('${user.id}', '${user.role === 'admin' ? 'user' : 'admin'}')">
+            ${user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+          </button>
+        </div>`
+      ).join('');
+    }
+
+    // Change user role (admin only)
+    async function changeUserRole(userId, newRole) {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      
+      try {
+        await db.collection('users').doc(userId).update({ role: newRole });
+        loadAdminData(); // Refresh the list
+      } catch (error) {
+        console.error('Error changing user role:', error);
+      }
+    }
+
+    // Save temperature data to user's history
+    async function saveTemperatureToHistory(temperature) {
+      if (!currentUser) return;
+      
+      try {
+        await db.collection('users').doc(currentUser.uid)
+          .collection('temperatureHistory')
+          .add({
+            temperature: temperature,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            location: 'Lake Ägeri'
+          });
+      } catch (error) {
+        console.error('Error saving temperature history:', error);
+      }
+    }
 
     async function fetchHistoricalData() {
       try {
